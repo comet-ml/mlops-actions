@@ -1,0 +1,32 @@
+name: ChatOps
+on: [issue_comment]
+
+jobs:
+    get-run:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: machine-learning-apps/actions-chatops@master
+          id: get_experiment_chatops
+          with:
+            TRIGGER_PHRASE: "/get-comet-experiment"
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Copy Repository Contents
+          if: steps.get_experiment_chatops.outputs.BOOL_TRIGGERED == 'true'
+          uses: actions/checkout@master
+
+        - name: Get runs
+          if: steps.get_experiment_chatops.outputs.BOOL_TRIGGERED == 'true'
+          run: |
+              cd $GITHUB_WORKSPACE
+              pip3 install -U pip wheel setuptools
+              pip3 -V
+              pip3 install comet_ml tabulate
+              python3 actions_files/get_comet_experiment.py ${{ steps.get_experiment_chatops.outputs.TRAILING_LINE }}
+          env:
+            COMET_API_KEY: ${{ secrets.COMET_API_KEY }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            PR_NUM: ${{ steps.get_experiment_chatops.outputs.PULL_REQUEST_NUMBER }}
+            # INPUT_DISPLAY_METRICS: '["accuracy", "loss"]'
+            # INPUT_DISPLAY_PARAMS: '["batch_size", "epochs"]'
